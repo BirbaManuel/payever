@@ -8,7 +8,7 @@ const assert = require('assert') //library to do unit test
 const session = require('express-session') // need this module to use flash
 const flash = require('connect-flash') //middleware connect-flash : temporary messages
 const fetch = require('node-fetch') //middleware to fetch other url
-const Bluebird = require('bluebird') // middleware to use Promise on request
+const Promise = require('bluebird') // middleware to use Promise on request
 
 //begin handle file path on server
 const { promisify } = require('util')
@@ -18,7 +18,8 @@ const path = require('path')
 const fs = require('fs')
 //end handle file path on server
 
-fetch.Promise = Bluebird
+fetch.Promise = Promise
+// Promise.promisifyAll(fs)
 const config = { port: 8000 }
 
 const urlencodedParser = bodyParser.urlencoded({ extended: true })
@@ -58,6 +59,7 @@ app.use(function(req, res, next) {
 })
 
 const baseURLAPI = `https://reqres.in/api/users/`
+
 async function handleUserApi(req, res) {
   const param = req.params.userId
   const url = baseURLAPI
@@ -66,6 +68,9 @@ async function handleUserApi(req, res) {
     .then(res => res.json())
     .then(json => {
       res.status(200).json(json) //User Data Representation
+    })
+    .catch(error => {
+      res.status(404).json(error) //User Data Representation not found
     })
 }
 
@@ -83,7 +88,12 @@ async function handleUserAvatarApi(req, res) {
     //.then(res => res.json())
     .then(imgAvatar => {
       console.log(imgAvatar)
+      //const dest = fs.createWriteStream('./octocat.png')
+      //res.body.pipe(dest)
       //return imgAvatar
+    })
+    .catch(error => {
+      res.status(404).json(error) //User Avatar not found
     })
   res.status(200).json({ succes: 'got user ' + param + ' avatar !' })
 }
