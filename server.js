@@ -19,8 +19,9 @@ const fs = require('fs')
 //end handle file path on server
 
 fetch.Promise = Promise
-// Promise.promisifyAll(fs)
+Promise.promisifyAll(fs)
 const config = { port: 8000 }
+const uploadPath = path.join(__dirname, 'uploads')
 
 const urlencodedParser = bodyParser.urlencoded({ extended: true })
 app.use(logger('dev'))
@@ -84,13 +85,13 @@ async function handleUserAvatarApi(req, res) {
       const { avatar } = urlAvatar['data']
       return avatar
     })
+    .catch(error => {
+      res.status(404).json(error) //URL Avatar not found
+    })
   await fetch(urlAvatarString)
-    //.then(res => res.json())
-    .then(imgAvatar => {
-      console.log(imgAvatar)
-      //const dest = fs.createWriteStream('./octocat.png')
-      //res.body.pipe(dest)
-      //return imgAvatar
+    .then(res => {
+      const dest = fs.createWriteStream('./octocat.png')
+      res.body.pipe(dest)
     })
     .catch(error => {
       res.status(404).json(error) //User Avatar not found
