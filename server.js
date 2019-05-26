@@ -19,10 +19,11 @@ const fs = require('fs')
 //end handle file path on server
 
 fetch.Promise = Promise
-Promise.promisifyAll(fs)
+// Promise.promisifyAll(fs)
+const readFileAsync = promisify(fs.readFile)
 const config = { port: 8000 }
 const uploadPath = path.join(__dirname, 'uploads')
-
+const processedRequest = [] // contain all the request already handle
 const urlencodedParser = bodyParser.urlencoded({ extended: true })
 app.use(logger('dev'))
 app.use(bodyParser.json())
@@ -63,6 +64,14 @@ app.use(function(req, res, next) {
 const baseURLAPI = `https://reqres.in/api/users/`
 
 async function handleUserApi(req, res) {
+  console.log(processedRequest)
+  if (
+    processedRequest.some((el, i, aray) => {
+      return aray.includes(el)
+    })
+  ) {
+    console.log('url already proceed')
+  }
   const param = req.params.userId
   const url = baseURLAPI
   const fullUrl = `${url}${param}`
@@ -93,18 +102,19 @@ async function handleUserAvatarApi(req, res) {
     urlAvatarString.split('/').length - 1
   ]
   await fetch(urlAvatarString)
-    .then(async res => {
-      const dest = fs.createWriteStream(filename)
-      await res.body.pipe(dest) //.pipe(encodeImageBase64(file))
-      console.log('done')
-      // const strBase64 =
-      encodeImageBase64(filename).then(data => console.log(data))
-      // console.log(strBase64)
+    .then(async resultat => {
+      const result = fs.createWriteStream(filename)
+      ;(await resultat.body.pipe(result)) /
+        encodeImageBase64(filename).then(strData => {
+          processedRequest.push({ fullUrl: strData })
+          res
+            .status(200)
+            .json({ succes: 'got user ' + param + ' avatar !', data: strData })
+        })
     })
     .catch(error => {
       res.status(404).json(error) //User Avatar not found
     })
-  res.status(200).json({ succes: 'got user ' + param + ' avatar !' })
 }
 
 async function handleUserAvatarApiDelete(req, res) {
@@ -123,24 +133,21 @@ async function handleUserAvatarApiDelete(req, res) {
   const filename = urlAvatarString.split('/')[
     urlAvatarString.split('/').length - 1
   ]
+  //remove file
   fs.unlink(filename, function(err) {
     if (err) throw err
-    // if no error, file has been deleted successfully
     console.log('File deleted!' + filename)
-    res
-      .status(200)
-      .json({
-        succes: 'got user ' + param + ' remove his avatar! ' + filename + ' !',
-      })
-  })
-}
-async function encodeImageBase64(file) {
-  await fs.readFile(file, async (err, data) => {
-    if (err) throw err
-    await data.toString('base64')
+    res.status(200).json({
+      succes: 'got user ' + param + ' remove his avatar! ' + filename + ' !',
+    })
   })
 }
 
+const encodeImageBase64 = async path => {
+  const res = await readFileAsync(path)
+  const data = res.toString('base64')
+  return data
+}
 http.Server(app).listen(config.port, function() {
   console.log(
     chalk`{green ✔ Server listening on port} {cyan ${config.port}} !!!`
