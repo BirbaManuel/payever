@@ -38,7 +38,7 @@ app.use(function(req, res, next) {
 })
 app.use(
   session(
-    { secret: 'payever' },
+    { secret: 'payever', resave: true, saveUninitialized: true },
     {
       cookie: { maxAge: 24 * 60 * 60 * 1000 }, //24h valide session
     }
@@ -80,7 +80,7 @@ async function handleUserAvatarApi(req, res) {
   const url = baseURLAPI
   const fullUrl = `${url}${param}`
   const urlAvatarString = await fetch(fullUrl)
-    .then(res => res.json())
+    .then(result => result.json())
     .then(urlAvatar => {
       const { avatar } = urlAvatar['data']
       return avatar
@@ -88,9 +88,12 @@ async function handleUserAvatarApi(req, res) {
     .catch(error => {
       res.status(404).json(error) //URL Avatar not found
     })
+  const filename = urlAvatarString.split('/')[
+    urlAvatarString.split('/').length - 1
+  ]
   await fetch(urlAvatarString)
     .then(res => {
-      const dest = fs.createWriteStream('./octocat.png')
+      const dest = fs.createWriteStream(filename)
       res.body.pipe(dest)
     })
     .catch(error => {
