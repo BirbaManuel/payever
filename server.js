@@ -48,6 +48,7 @@ app.use(flash())
 
 app.get('/api/user/:userId', handleUserApi)
 app.get('/api/user/:userId/avatar', handleUserAvatarApi)
+app.delete('/api/user/:userId/avatar', handleUserAvatarApiDelete)
 
 app.use(function(req, res, next) {
   res.status(404).json({
@@ -92,14 +93,52 @@ async function handleUserAvatarApi(req, res) {
     urlAvatarString.split('/').length - 1
   ]
   await fetch(urlAvatarString)
-    .then(res => {
+    .then(async res => {
       const dest = fs.createWriteStream(filename)
-      res.body.pipe(dest)
+      await res.body.pipe(dest) //.pipe(encodeImageBase64(file))
+      console.log('done')
+      // const strBase64 =
+      encodeImageBase64(filename).then(data => console.log(data))
+      // console.log(strBase64)
     })
     .catch(error => {
       res.status(404).json(error) //User Avatar not found
     })
   res.status(200).json({ succes: 'got user ' + param + ' avatar !' })
+}
+
+async function handleUserAvatarApiDelete(req, res) {
+  const param = req.params.userId
+  const url = baseURLAPI
+  const fullUrl = `${url}${param}`
+  const urlAvatarString = await fetch(fullUrl)
+    .then(result => result.json())
+    .then(urlAvatar => {
+      const { avatar } = urlAvatar['data']
+      return avatar
+    })
+    .catch(error => {
+      res.status(404).json(error) //URL Avatar not found
+    })
+  const filename = urlAvatarString.split('/')[
+    urlAvatarString.split('/').length - 1
+  ]
+  fs.unlink(filename, function(err) {
+    if (err) throw err
+    // if no error, file has been deleted successfully
+    console.log('File deleted!' + filename)
+    res
+      .status(200)
+      .json({
+        succes: 'got user ' + param + ' remove his avatar! ' + filename + ' !',
+      })
+  })
+}
+async function encodeImageBase64(file) {
+  await fs.readFile(file, async (err, data) => {
+    if (err) throw err
+    await data.toString('base64')
+  })
 }
 
 http.Server(app).listen(config.port, function() {
