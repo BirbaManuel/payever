@@ -65,16 +65,25 @@ const baseURLAPI = `https://reqres.in/api/users/`
 
 async function handleUserApi(req, res) {
   console.log(processedRequest)
-  if (
-    processedRequest.some((el, i, aray) => {
-      return aray.includes(el)
-    })
-  ) {
-    console.log('url already proceed')
-  }
+
   const param = req.params.userId
   const url = baseURLAPI
   const fullUrl = `${url}${param}`
+  if (
+    processedRequest.some((el, i, aray) => {
+      return aray.includes(el.url)
+    })
+  ) {
+    processedRequest.forEach(el => {
+      console.log(el)
+      if (el.url === fullUrl) {
+        console.log(el)
+        res.status(200).json({ urlBase64: el.url })
+      }
+    })
+    console.log('url already proceed')
+    // return
+  }
   await fetch(fullUrl)
     .then(res => res.json())
     .then(json => {
@@ -106,7 +115,7 @@ async function handleUserAvatarApi(req, res) {
       const result = fs.createWriteStream(filename)
       ;(await resultat.body.pipe(result)) /
         encodeImageBase64(filename).then(strData => {
-          processedRequest.push({ fullUrl: strData })
+          processedRequest.push({ url: req.originalUrl, base64: strData })
           res
             .status(200)
             .json({ succes: 'got user ' + param + ' avatar !', data: strData })
