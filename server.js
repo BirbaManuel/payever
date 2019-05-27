@@ -84,13 +84,13 @@ async function handleUserAvatarApi(req, res) {
   console.log(processedRequests)
   if (
     processedRequests.some((el, i, aray) => {
-      return aray[i].includes(el.url)
+      return el.url === req.originalUrl
     })
   ) {
-    const savededAvatar = findBase64(fullUrl, processedRequests)
+    const savededAvatar = findBase64(req.originalUrl, processedRequests)
     res.status(200).json({
       succes: 'URL already processed for user ' + param + ' avatar !',
-      data: savededAvatar,
+      data: savededAvatar['base64'],
     })
     return
   }
