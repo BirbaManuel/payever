@@ -6,3 +6,4 @@ build
 *.JPEG
 *.PNG
 *.md
+package-lock.json

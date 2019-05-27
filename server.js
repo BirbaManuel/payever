@@ -163,3 +163,4 @@ http.Server(app).listen(config.port, function() {
     chalk`{green ✔ Server listening on port} {cyan ${config.port}} !!!`
   )
 })
+exports.findBase64 = findBase64
