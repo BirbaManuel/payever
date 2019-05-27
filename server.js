@@ -23,7 +23,7 @@ fetch.Promise = Promise
 const readFileAsync = promisify(fs.readFile)
 const config = { port: 8000 }
 const uploadPath = path.join(__dirname, 'uploads')
-const processedRequest = [] // contain all the request already handle
+const processedRequests = [] // contain all the request already handle
 const urlencodedParser = bodyParser.urlencoded({ extended: true })
 app.use(logger('dev'))
 app.use(bodyParser.json())
@@ -53,37 +53,19 @@ app.delete('/api/user/:userId/avatar', handleUserAvatarApiDelete)
 
 app.use(function(req, res, next) {
   res.status(404).json({
-    error: `sorry your request method
-      ${req.method}
-       forward
-      ${req.originalUrl}
-       not match…`,
+    error: `sorry your request method ${req.method} forward ${
+      req.originalUrl
+    } not match…`,
   })
 })
 
 const baseURLAPI = `https://reqres.in/api/users/`
 
 async function handleUserApi(req, res) {
-  console.log(processedRequest)
-
   const param = req.params.userId
   const url = baseURLAPI
   const fullUrl = `${url}${param}`
-  if (
-    processedRequest.some((el, i, aray) => {
-      return aray.includes(el.url)
-    })
-  ) {
-    processedRequest.forEach(el => {
-      console.log(el)
-      if (el.url === fullUrl) {
-        console.log(el)
-        res.status(200).json({ urlBase64: el.url })
-      }
-    })
-    console.log('url already proceed')
-    // return
-  }
+
   await fetch(fullUrl)
     .then(res => res.json())
     .then(json => {
@@ -98,6 +80,21 @@ async function handleUserAvatarApi(req, res) {
   const param = req.params.userId
   const url = baseURLAPI
   const fullUrl = `${url}${param}`
+
+  console.log(processedRequests)
+  if (
+    processedRequests.some((el, i, aray) => {
+      return aray[i].includes(el.url)
+    })
+  ) {
+    const savededAvatar = findBase64(fullUrl, processedRequests)
+    res.status(200).json({
+      succes: 'URL already processed for user ' + param + ' avatar !',
+      data: savededAvatar,
+    })
+    return
+  }
+
   const urlAvatarString = await fetch(fullUrl)
     .then(result => result.json())
     .then(urlAvatar => {
@@ -115,7 +112,7 @@ async function handleUserAvatarApi(req, res) {
       const result = fs.createWriteStream(filename)
       ;(await resultat.body.pipe(result)) /
         encodeImageBase64(filename).then(strData => {
-          processedRequest.push({ url: req.originalUrl, base64: strData })
+          processedRequests.push({ url: req.originalUrl, base64: strData })
           res
             .status(200)
             .json({ succes: 'got user ' + param + ' avatar !', data: strData })
@@ -157,6 +154,10 @@ const encodeImageBase64 = async path => {
   const data = res.toString('base64')
   return data
 }
+function findBase64(str, arr) {
+  return arr.find(el => el.url === str)
+}
+
 http.Server(app).listen(config.port, function() {
   console.log(
     chalk`{green ✔ Server listening on port} {cyan ${config.port}} !!!`
